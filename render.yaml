@@ -7,18 +7,18 @@ services:
     region: singapore
     buildCommand: npm install && npm run build
     startCommand: node server.js
-    healthCheckPath: /api/health
+    autoDeploy: true
     envVars:
       - key: NODE_VERSION
         value: 20.18.0
-      - key: PORT
-        value: 5000
+      - key: NODE_ENV
+        value: production
       - key: SUPABASE_URL
-        sync: false
+        value: https://giuftrigtoackyrfbacw.supabase.co
       - key: SUPABASE_ANON_KEY
-        sync: false
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdpdWZ0cmlndG9hY2t5cmZiYWN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1Nzk5NDksImV4cCI6MjEwODE1NTk0OX0.4YlWVmgKdYtGGDhRbsUr6w4jdOL67I6Z8Tta0bg80eM
       - key: SUPABASE_SERVICE_ROLE_KEY
-        sync: false
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdpdWZ0cmlndG9hY2t5cmZiYWN3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MjU3OTk0OSwiZXhwIjoyMTA4MTU1OTQ5fQ.UUjogJoGc_94SqlKcaaHdQKtp_eE1MCe4_i5lqj8690
       - key: SMTP_HOST
         value: smtp.gmail.com
       - key: SMTP_PORT
@@ -26,11 +26,12 @@ services:
       - key: SMTP_SECURE
         value: "true"
       - key: SMTP_USER
-        sync: false
+        value: deepakkumars170404@gmail.com
       - key: SMTP_PASS
-        sync: false
+        value: zckftmtgkvfvrozs
+      - key: EMAIL_FROM
+        value: notifications@trackmysubs.com
       - key: EMAIL_FROM_NAME
         value: TrackmySubs
       - key: FRONTEND_URL
-        sync: false
-
+        value: https://trackmysubs-in.vercel.app
