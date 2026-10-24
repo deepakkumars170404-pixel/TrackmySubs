@@ -97,3 +97,4 @@ export async function sendInviteEmail({
 
   return { success: true, delivered: true, id: data.id, inviteUrl: acceptUrl };
 }
+

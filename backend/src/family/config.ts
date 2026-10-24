@@ -1,3 +1,7 @@
+if (typeof (globalThis as any).WebSocket === 'undefined') {
+  (globalThis as any).WebSocket = class DummyWebSocket {};
+}
+
 import dotenv from 'dotenv';
 import path from 'path';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
@@ -36,12 +40,11 @@ const supabaseServiceRoleKey =
 export const config: AppConfig = {
   port: parseInt(process.env.PORT || '4000', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
-  corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  corsOrigin: process.env.CORS_ORIGIN || '*',
   supabaseUrl,
   supabaseAnonKey,
   supabaseServiceRoleKey,
-  defaultHouseholdId:
-    process.env.DEFAULT_HOUSEHOLD_ID || '11111111-1111-1111-1111-111111111111'
+  defaultHouseholdId: process.env.DEFAULT_HOUSEHOLD_ID || 'household-kumar-family'
 };
 
 let adminClientInstance: SupabaseClient | null = null;
@@ -84,4 +87,3 @@ export function createUserClient(token: string): SupabaseClient {
     }
   });
 }
-
