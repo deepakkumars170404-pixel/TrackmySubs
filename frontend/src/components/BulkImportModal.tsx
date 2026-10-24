@@ -41,18 +41,18 @@ interface ParsedImportRow {
 
 const SAMPLE_CSV = `Name,Cost,Billing Cycle,Validity Days,Start Date,Assigned Member,Plan Tier,Payment Method
 Netflix,649,monthly,30,2026-10-03,Everyone,Standard HD,UPI AutoPay
-Spotify,179,monthly,30,2026-10-22,deepakspdkk@gmail.com,Premium Family,Credit Card
-MyJio,349,monthly,28,2026-10-22,deepakspdkk@gmail.com,Prepaid 2GB/Day,JioPay
+Spotify,179,monthly,30,2026-10-22,Everyone,Premium Family,Credit Card
+MyJio,349,monthly,28,2026-10-22,Everyone,Prepaid 2GB/Day,JioPay
 Jio + Sun NXT,549,monthly,56,2026-10-22,Everyone,Standard 1.5GB/Day,UPI AutoPay
-Prime Video,1499,yearly,365,2025-11-16,DK,Annual Prime,Amazon Pay
-Google One,1300,yearly,365,2025-11-11,deepakkumars170404@gmail.com,100 GB Storage,Google Play
+Prime Video,1499,yearly,365,2025-11-16,Everyone,Annual Prime,Amazon Pay
+Google One,1300,yearly,365,2025-11-11,Everyone,100 GB Storage,Google Play
 ZEE5,399,quarterly,92,2026-10-20,Everyone,Premium 4K,UPI AutoPay`;
 
 export default function BulkImportModal({
   isOpen,
   onClose,
   onImportBulk,
-  availableMembers = ["Everyone", "Deepak", "DK", "Priya"],
+  availableMembers = ["Everyone", "Primary", "Member"],
 }: BulkImportModalProps) {
   const [inputText, setInputText] = useState("");
   const [parsedRows, setParsedRows] = useState<ParsedImportRow[]>([]);

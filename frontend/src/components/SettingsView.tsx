@@ -211,7 +211,15 @@ export default function SettingsView({
   const handleSendTestEmailDigest = async () => {
     setIsSendingEmail(true);
     try {
-      const recipient = currentUser?.email || "deepakkumars170404@gmail.com";
+    const recipient = currentUser?.email || "";
+    if (!recipient) {
+      setNoticeMessage({
+        type: "warning",
+        text: "Please sign in or connect an email to deliver test digests.",
+      });
+      setIsSendingEmail(false);
+      return;
+    }
       const res = await sendRenewalEmailDigest(recipient, subscriptions);
       if (res.success) {
         setNoticeMessage({
@@ -611,7 +619,7 @@ export default function SettingsView({
             </p>
           </div>
           <span className="text-xs font-semibold text-slate-500">
-            {currentUser?.email || "deepakkumars170404@gmail.com"}
+            {currentUser?.email || "user@example.com"}
           </span>
         </div>
 
@@ -733,7 +741,7 @@ export default function SettingsView({
           <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3">
             <div className="text-xs text-slate-600">
               <span className="font-bold text-slate-800">Connected IMAP Mailbox: </span>
-              <span className="font-mono text-indigo-900 font-semibold">{currentUser?.email || "deepakkumars170404@gmail.com"}</span>
+              <span className="font-mono text-indigo-900 font-semibold">{currentUser?.email || "No mailbox connected"}</span>
             </div>
 
             <button

@@ -680,7 +680,7 @@ export function HouseholdProvider({ children }: { children: React.ReactNode }) {
               id: "inbox-gmail",
               provider: "Gmail",
               email: data.accountEmail,
-              connectedBy: "Deepak",
+              connectedBy: currentUser?.name || "Admin",
               lastChecked: data.lastChecked ? "Just now" : "Auto-Sync Active",
               status: "Connected",
               historyDaysScanned: 30,
@@ -1466,7 +1466,7 @@ export function HouseholdProvider({ children }: { children: React.ReactNode }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           maxEmails: 50,
-          email: currentUser?.email || "deepakkumars170404@gmail.com",
+          email: currentUser?.email || "",
         }),
       });
       const data = await response.json();

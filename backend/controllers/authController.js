@@ -661,29 +661,21 @@ export async function googleVerify(req, res) {
     const existingUser = users && users.find(u => u.email && u.email.toLowerCase() === cleanEmail.toLowerCase());
 
     if (!existingUser) {
-      if (allowSignup) {
-        // Auto-create account during sign up
-        const tempPass = "Google@" + Math.random().toString(36).substring(2, 12) + "!";
-        const { data: newUser, error: createError } = await admin.auth.admin.createUser({
-          email: cleanEmail,
-          email_confirm: true,
-          password: tempPass
-        });
-        if (createError) {
-          return res.status(400).json({ success: false, message: createError.message });
-        }
-        return res.json({
-          success: true,
-          message: "Google account created successfully!",
-          user: { id: newUser?.user?.id || "user", email: cleanEmail }
-        });
-      } else {
-        // In signin mode: reject incorrect / non-existent emails!
-        return res.status(404).json({
-          success: false,
-          message: `No account found with ${cleanEmail}. Please enter your correct registered email address or click "Create an account".`
-        });
+      // Auto-create account so any Google user can seamlessly sign in or sign up
+      const tempPass = "Google@" + Math.random().toString(36).substring(2, 12) + "!";
+      const { data: newUser, error: createError } = await admin.auth.admin.createUser({
+        email: cleanEmail,
+        email_confirm: true,
+        password: tempPass
+      });
+      if (createError) {
+        return res.status(400).json({ success: false, message: createError.message });
       }
+      return res.json({
+        success: true,
+        message: "Google account connected successfully!",
+        user: { id: newUser?.user?.id || "user", email: cleanEmail, name: cleanEmail.split("@")[0] }
+      });
     }
 
     // Existing user found! Auto-confirm email if needed so login is frictionless

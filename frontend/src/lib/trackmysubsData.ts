@@ -10,17 +10,7 @@ export const INITIAL_MEMBERS: FamilyMember[] = [];
 
 export const INITIAL_SHARED_PLANS: SharedPlanSummary[] = [];
 
-export const INITIAL_INBOXES: ConnectedInbox[] = [
-  {
-    id: 'inbox-gmail',
-    provider: 'Gmail',
-    email: 'deepakkumars170404@gmail.com',
-    connectedBy: 'Deepak',
-    lastChecked: 'Just now',
-    status: 'Connected',
-    historyDaysScanned: 30
-  }
-];
+export const INITIAL_INBOXES: ConnectedInbox[] = [];
 
 export const INITIAL_DETECTED: DetectedReceipt[] = [];
 

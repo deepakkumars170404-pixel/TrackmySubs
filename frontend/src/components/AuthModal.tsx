@@ -142,16 +142,26 @@ export default function AuthModal({
         const saved = window.localStorage.getItem("trackmysubs_google_accounts");
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setGoogleAccounts(parsed);
-            return;
+          if (Array.isArray(parsed)) {
+            const cleanSaved = parsed.filter(
+              (acc: any) =>
+                acc?.email &&
+                acc.email.toLowerCase() !== "deepakkumars170404@gmail.com"
+            );
+            if (cleanSaved.length > 0) {
+              setGoogleAccounts(cleanSaved);
+              window.localStorage.setItem(
+                "trackmysubs_google_accounts",
+                JSON.stringify(cleanSaved)
+              );
+              return;
+            } else {
+              window.localStorage.removeItem("trackmysubs_google_accounts");
+            }
           }
         }
       } catch {}
-      const initial: GoogleAccountItem[] = [
-        { email: "deepakkumars170404@gmail.com", name: "Deepak Kumar", avatar: "D" },
-      ];
-      setGoogleAccounts(initial);
+      setGoogleAccounts([]);
     }
   }, []);
 
@@ -349,13 +359,13 @@ export default function AuthModal({
     try {
       const res = await callAuthApi("google-verify", {
         email: cleanEmail,
-        allowSignup: mode === "signup",
+        allowSignup: true,
       });
 
       if (!res.ok || !res.data?.success) {
         setGoogleModalError(
           res.data?.message ||
-            `No account found with ${cleanEmail}. Please check your email or click "Create an account".`
+            `Unable to verify Google account (${cleanEmail}). Please try again.`
         );
         setIsVerifyingGoogle(null);
         return;
@@ -607,7 +617,7 @@ export default function AuthModal({
                   type="button"
                   onClick={() => {
                     setGoogleModalError(null);
-                    setShowAddAnotherGoogle(false);
+                    setShowAddAnotherGoogle(googleAccounts.length === 0);
                     setShowGoogleModal(true);
                   }}
                   className="w-full flex items-center justify-center gap-2.5 px-4 py-2.5 border border-slate-300 rounded-xl text-[13px] font-bold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer shadow-2xs"
@@ -660,7 +670,9 @@ export default function AuthModal({
               <div className="w-10 h-10 rounded-2xl bg-white shadow-md border border-slate-100 flex items-center justify-center mx-auto mb-3">
                 <GoogleGIcon className="w-6 h-6" />
               </div>
-              <h3 className="text-xl font-bold text-slate-900 tracking-tight">Choose an account</h3>
+              <h3 className="text-xl font-bold text-slate-900 tracking-tight">
+                {googleAccounts.length > 0 ? "Choose an account" : "Sign in with Google"}
+              </h3>
               <p className="text-xs text-slate-500 mt-1">to continue to <strong>TrackmySubs</strong></p>
             </div>
 
@@ -731,7 +743,13 @@ export default function AuthModal({
                   <div className="flex items-center justify-end gap-2">
                     <button
                       type="button"
-                      onClick={() => setShowAddAnotherGoogle(false)}
+                      onClick={() => {
+                        setShowAddAnotherGoogle(false);
+                        setAnotherGoogleEmail("");
+                        if (googleAccounts.length === 0) {
+                          setShowGoogleModal(false);
+                        }
+                      }}
                       className="px-3 py-1.5 text-xs text-slate-500 font-semibold"
                     >
                       Cancel

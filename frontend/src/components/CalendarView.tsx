@@ -133,7 +133,7 @@ export default function CalendarView({
   );
   const [calcValidityDays, setCalcValidityDays] = useState<number>(28);
   const [calcCustomDaysInput, setCalcCustomDaysInput] = useState<string>("28");
-  const [calcWhoUses, setCalcWhoUses] = useState(members[0]?.name || "Deepak");
+  const [calcWhoUses, setCalcWhoUses] = useState(members[0]?.name || "Me");
   const [calcPasteSnippet, setCalcPasteSnippet] = useState("");
   const [calcSavedSuccess, setCalcSavedSuccess] = useState(false);
 

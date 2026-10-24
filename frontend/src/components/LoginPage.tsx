@@ -158,19 +158,29 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
         const saved = window.localStorage.getItem("trackmysubs_google_accounts");
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setGoogleAccounts(parsed);
-            return;
+          if (Array.isArray(parsed)) {
+            // Strip any developer email that was inadvertently stored previously
+            const cleanSaved = parsed.filter(
+              (acc: any) =>
+                acc?.email &&
+                acc.email.toLowerCase() !== "deepakkumars170404@gmail.com"
+            );
+            if (cleanSaved.length > 0) {
+              setGoogleAccounts(cleanSaved);
+              window.localStorage.setItem(
+                "trackmysubs_google_accounts",
+                JSON.stringify(cleanSaved)
+              );
+              return;
+            } else {
+              window.localStorage.removeItem("trackmysubs_google_accounts");
+            }
           }
         }
       } catch (e) {
         console.warn("Storage read error:", e);
       }
-      // Default known Google accounts for seamless mobile-style picking
-      const initialAccounts: GoogleAccountItem[] = [
-        { email: "deepakkumars170404@gmail.com", name: "Deepak Kumar", avatar: "D" },
-      ];
-      setGoogleAccounts(initialAccounts);
+      setGoogleAccounts([]);
     }
   }, []);
 
@@ -462,7 +472,7 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
   // =========================================================================
   const handleOpenGoogleAccountModal = () => {
     setGoogleModalError(null);
-    setShowAddAnotherGoogle(false);
+    setShowAddAnotherGoogle(googleAccounts.length === 0);
     setAnotherGoogleEmail("");
     setShowGoogleModal(true);
   };
@@ -476,13 +486,13 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
     try {
       const res = await callAuthApi("google-verify", {
         email: cleanEmail,
-        allowSignup: mode === "signup",
+        allowSignup: true,
       });
 
       if (!res.ok || !res.data?.success) {
         setGoogleModalError(
           res.data?.message ||
-            `No account found with ${cleanEmail}. Please enter your correct registered email address or click "Create an account".`
+            `Unable to verify Google account (${cleanEmail}). Please try again.`
         );
         setIsVerifyingGoogleAccount(null);
         return;
@@ -1190,7 +1200,7 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
                 <GoogleGIcon className="w-6 h-6" />
               </div>
               <h3 className="text-xl font-bold text-slate-900 tracking-tight">
-                Choose an account
+                {googleAccounts.length > 0 ? "Choose an account" : "Sign in with Google"}
               </h3>
               <p className="text-xs text-slate-500 mt-1">
                 to continue to <strong className="text-slate-800">TrackmySubs</strong>
@@ -1280,6 +1290,9 @@ export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
                       onClick={() => {
                         setShowAddAnotherGoogle(false);
                         setAnotherGoogleEmail("");
+                        if (googleAccounts.length === 0) {
+                          setShowGoogleModal(false);
+                        }
                       }}
                       className="px-3 py-1.5 text-xs text-slate-500 hover:text-slate-800 font-semibold cursor-pointer"
                     >
