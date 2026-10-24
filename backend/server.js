@@ -14,7 +14,7 @@ process.env.SMTP_PORT = process.env.SMTP_PORT || "465";
 process.env.SMTP_SECURE = process.env.SMTP_SECURE || "true";
 process.env.SMTP_USER = process.env.SMTP_USER || "deepakkumars170404@gmail.com";
 process.env.SMTP_PASS = process.env.SMTP_PASS || "zckftmtgkvfvrozs";
-process.env.EMAIL_FROM = process.env.EMAIL_FROM || "notifications@trackmysubs.com";
+process.env.EMAIL_FROM = process.env.EMAIL_FROM || process.env.SMTP_USER || "deepakkumars170404@gmail.com";
 
 import express from "express";
 import cors from "cors";
@@ -173,7 +173,7 @@ app.use("/api", householdRoutes);
 
 app.use((err, _req, res, _next) => {
   console.error("Unhandled API error:", err);
-  res.status(500).json({ success: false, message: err.message || "Server error. Please try again." });
+  res.status(500).json({ success: false, message: err?.message || String(err) || "Server error. Please try again." });
 });
 
 const port = Number(process.env.PORT || 5000);

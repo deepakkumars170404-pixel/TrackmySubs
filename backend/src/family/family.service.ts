@@ -182,11 +182,11 @@ export class FamilyService {
     const queryParams = `accept=${encodeURIComponent(memberId)}&email=${encodeURIComponent(to)}&name=${encodeURIComponent(name)}&provider=${encodeURIComponent(provider)}&action=approve`;
 
     const publicUrl = process.env.PUBLIC_URL ? process.env.PUBLIC_URL.replace(/\/$/, '') : '';
-    const frontendUrl = process.env.FRONTEND_URL ? process.env.FRONTEND_URL.replace(/\/$/, '') : `http://${lanIp}:3000`;
+    const frontendUrl = process.env.FRONTEND_URL ? process.env.FRONTEND_URL.replace(/\/$/, '') : 'https://trackmysubs-pro.vercel.app';
     const backendPort = process.env.PORT || '5000';
 
     // Desktop/LAN/Public URLs
-    const webAcceptUrl = publicUrl
+    const webAcceptUrl = (publicUrl && !publicUrl.includes('cloudflare') && !publicUrl.includes('trycloudflare'))
       ? `${publicUrl}/family?${queryParams}`
       : `${frontendUrl}/family?${queryParams}`;
 
@@ -343,7 +343,7 @@ export class FamilyService {
       });
 
       const info = await transporter.sendMail({
-        from: `"${senderName}" <${senderEmail}>`,
+        from: `"${senderName}" <${smtpUser}>`,
         replyTo: replyToEmail,
         to,
         subject: emailSubject,

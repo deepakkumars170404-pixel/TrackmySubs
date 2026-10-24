@@ -1039,6 +1039,69 @@ export function HouseholdProvider({ children }: { children: React.ReactNode }) {
     setInboxes((prev) => [...prev, newInbox]);
   };
 
+  async function callFamilyBackendApi(
+    endpoint: string,
+    payload: Record<string, any>
+  ): Promise<{ ok: boolean; status: number; data: any }> {
+    const hosts: string[] = [];
+
+    if (typeof window !== "undefined") {
+      // 1. Same-origin (Next.js rewrites /api/*)
+      hosts.push(window.location.origin);
+      // 2. Direct localhost:5000 if dev
+      if (
+        window.location.hostname === "localhost" ||
+        window.location.hostname === "127.0.0.1"
+      ) {
+        hosts.push("http://127.0.0.1:5000");
+      }
+    }
+
+    // 3. Fallback to live deployed backend on Render
+    hosts.push("https://trackmysubs-backend.onrender.com");
+
+    let lastErrorMsg = "Unable to connect to family backend service.";
+
+    for (const host of hosts) {
+      try {
+        const cleanHost = host.replace(/\/$/, "");
+        const cleanEndpoint = endpoint.replace(/^\//, "");
+        const url = `${cleanHost}/api/family/${cleanEndpoint}`;
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+
+        const json = await res.json().catch(() => null);
+
+        if (res.ok && json && json.success !== false) {
+          return { ok: true, status: res.status, data: json };
+        }
+
+        if (json && typeof json.message === "string") {
+          return { ok: false, status: res.status, data: json };
+        }
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          lastErrorMsg = err.message;
+        }
+      }
+    }
+
+    return {
+      ok: false,
+      status: 500,
+      data: { success: false, message: lastErrorMsg },
+    };
+  }
+
   const handleInviteMember = async (newMember: FamilyMember): Promise<{ success: boolean; delivered?: boolean; message: string }> => {
     // Add locally as Pending Acceptance
     const pendingMember: FamilyMember = {
@@ -1057,17 +1120,13 @@ export function HouseholdProvider({ children }: { children: React.ReactNode }) {
     });
 
     try {
-      const BACKEND_URL = getBackendUrl();
-      const res = await fetch(`${BACKEND_URL}/api/family/invite`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fullName: newMember.name,
-          email: newMember.email || "",
-          role: (newMember.role || "member").toLowerCase(),
-        }),
+      const res = await callFamilyBackendApi("invite", {
+        fullName: newMember.name,
+        email: newMember.email || "",
+        role: (newMember.role || "member").toLowerCase(),
       });
-      const data = await res.json();
+
+      const data = res.data;
       if (data?.data) {
         setMembers((prev) =>
           deduplicateMembers(
@@ -1080,8 +1139,8 @@ export function HouseholdProvider({ children }: { children: React.ReactNode }) {
         );
       }
       return {
-        success: data?.success ?? true,
-        delivered: data?.delivered ?? false,
+        success: data?.success ?? res.ok,
+        delivered: data?.delivered ?? res.ok,
         message: data?.message || `Confirmation request email delivered to ${newMember.email}!`
       };
     } catch (e: any) {
@@ -1192,19 +1251,13 @@ export function HouseholdProvider({ children }: { children: React.ReactNode }) {
 
   const handleResendMemberInvite = async (memberId: string, email: string, name: string) => {
     try {
-      const BACKEND_URL = getBackendUrl();
-      const res = await fetch(`${BACKEND_URL}/api/family/resend-invite`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ memberId, email, fullName: name }),
-      });
-      const data = await res.json();
-      return { success: data.success ?? true, message: data.message || 'Invitation sent!' };
+      const res = await callFamilyBackendApi("resend-invite", { memberId, email, fullName: name });
+      const data = res.data;
+      return { success: data?.success ?? res.ok, message: data?.message || 'Invitation sent!' };
     } catch (e: any) {
       return { success: false, message: e.message || 'Failed to resend invite' };
     }
   };
-
 
   const handleRequestMemberConnect = async (memberId: string, email: string, name: string, provider: 'Gmail' | 'Outlook' = 'Gmail') => {
     // Set optimistic status to Pending Acceptance
@@ -1217,14 +1270,9 @@ export function HouseholdProvider({ children }: { children: React.ReactNode }) {
     );
 
     try {
-      const BACKEND_URL = getBackendUrl();
-      const res = await fetch(`${BACKEND_URL}/api/family/request-connect`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ memberId, email: email.trim(), fullName: name, provider }),
-      });
-      const data = await res.json();
-      return { success: data.success ?? true, delivered: data.delivered, message: data.message || 'Connection request sent!', inviteUrl: data.data?.inviteUrl };
+      const res = await callFamilyBackendApi("request-connect", { memberId, email: email.trim(), fullName: name, provider });
+      const data = res.data;
+      return { success: data?.success ?? res.ok, delivered: data?.delivered, message: data?.message || 'Connection request sent!', inviteUrl: data?.data?.inviteUrl };
     } catch (e: any) {
       return { success: false, message: e.message || 'Failed to send connection request.' };
     }
@@ -1282,13 +1330,8 @@ export function HouseholdProvider({ children }: { children: React.ReactNode }) {
     });
 
     try {
-      const BACKEND_URL = getBackendUrl();
-      const res = await fetch(`${BACKEND_URL}/api/family/accept-invite`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ memberId, email, provider, name }),
-      });
-      const data = await res.json();
+      const apiRes = await callFamilyBackendApi("accept-invite", { memberId, email, provider, name });
+      const data = apiRes.data;
 
       // If backend returned scannedSubscriptions, merge them into the user's subscriptions state!
       if (data?.scannedSubscriptions && Array.isArray(data.scannedSubscriptions) && data.scannedSubscriptions.length > 0) {

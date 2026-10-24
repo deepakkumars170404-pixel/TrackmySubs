@@ -30,8 +30,8 @@ services:
       - key: SMTP_PASS
         value: zckftmtgkvfvrozs
       - key: EMAIL_FROM
-        value: notifications@trackmysubs.com
+        value: deepakkumars170404@gmail.com
       - key: EMAIL_FROM_NAME
         value: TrackmySubs
       - key: FRONTEND_URL
-        value: https://trackmysubs-in.vercel.app
+        value: https://trackmysubs-pro.vercel.app

@@ -20,18 +20,18 @@ export interface AppConfig {
 const supabaseUrl =
   process.env.SUPABASE_URL ||
   process.env.NEXT_PUBLIC_SUPABASE_URL ||
-  'https://rezhfgedjeucljtnsptw.supabase.co';
+  'https://giuftrigtoackyrfbacw.supabase.co';
 
 const supabaseAnonKey =
   process.env.SUPABASE_ANON_KEY ||
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-  '';
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdpdWZ0cmlndG9hY2t5cmZiYWN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1Nzk5NDksImV4cCI6MjEwODE1NTk0OX0.4YlWVmgKdYtGGDhRbsUr6w4jdOL67I6Z8Tta0bg80eM';
 
 const supabaseServiceRoleKey =
   process.env.SUPABASE_SERVICE_ROLE_KEY ||
   process.env.SUPABASE_SERVICE_KEY ||
-  '';
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdpdWZ0cmlndG9hY2t5cmZiYWN3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MjU3OTk0OSwiZXhwIjoyMTA4MTU1OTQ5fQ.UUjogJoGc_94SqlKcaaHdQKtp_eE1MCe4_i5lqj8690';
 
 export const config: AppConfig = {
   port: parseInt(process.env.PORT || '4000', 10),
@@ -51,13 +51,13 @@ let adminClientInstance: SupabaseClient | null = null;
  */
 export function getSupabaseAdminClient(): SupabaseClient {
   if (!adminClientInstance) {
-    const key = config.supabaseServiceRoleKey || config.supabaseAnonKey;
-    if (!config.supabaseUrl || !key) {
-      console.warn(
-        '[Supabase] Warning: SUPABASE_URL or API Key is missing. Check your .env file.'
-      );
-    }
-    adminClientInstance = createClient(config.supabaseUrl, key, {
+    const currentUrl = process.env.SUPABASE_URL || config.supabaseUrl;
+    const currentKey =
+      process.env.SUPABASE_SERVICE_ROLE_KEY ||
+      process.env.SUPABASE_ANON_KEY ||
+      config.supabaseServiceRoleKey ||
+      config.supabaseAnonKey;
+    adminClientInstance = createClient(currentUrl, currentKey, {
       auth: {
         persistSession: false,
         autoRefreshToken: false
