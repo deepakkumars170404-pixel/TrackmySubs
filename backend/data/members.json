@@ -1,0 +1,28 @@
+[
+  {
+    "id": "mem-deepak",
+    "name": "Deepak Kumar",
+    "role": "Owner",
+    "avatarInitials": "DK",
+    "avatarColor": "bg-[#E7F2EA] text-[#184A39]",
+    "planCount": 0,
+    "monthlyShare": 0,
+    "inboxStatus": "Gmail connected",
+    "email": "deepakkumars170404@gmail.com",
+    "lastChecked": "Mailbox verified - 0 active subscriptions found",
+    "status": "active"
+  },
+  {
+    "id": "mem-1792817894082-291",
+    "name": "Rajkumar",
+    "role": "Member",
+    "avatarInitials": "RA",
+    "avatarColor": "bg-[#FEE2E2] text-[#991B1B]",
+    "planCount": 0,
+    "monthlyShare": 0,
+    "inboxStatus": "Gmail connected",
+    "email": "kumarrk23dev@gmail.com",
+    "lastChecked": "Mailbox verified - 0 active subscriptions found",
+    "status": "active"
+  }
+]

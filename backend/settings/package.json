@@ -1,0 +1,27 @@
+{
+  "name": "subscription-management-settings-backend",
+  "version": "1.0.0",
+  "description": "Pure Supabase backend module for Subscription Management settings and notifications.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "dev": "tsc && node dist/server.js",
+    "watch": "tsc --watch",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "supabase",
+    "settings",
+    "preferences",
+    "subscriptions"
+  ],
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.19",
+    "typescript": "^5.7.3"
+  }
+}

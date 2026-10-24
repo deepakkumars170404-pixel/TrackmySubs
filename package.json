@@ -1,0 +1,15 @@
+{
+  "name": "subscription-management-root",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Kinfolk Subscription Management Workspace",
+  "scripts": {
+    "postinstall": "npm --prefix backend install",
+    "build": "npm --prefix backend install && npm --prefix backend run build",
+    "build:all": "npm --prefix frontend run build && npm --prefix backend run build",
+    "start": "node server.js",
+    "start:backend": "node backend/server.js",
+    "start:frontend": "npm --prefix frontend start",
+    "dev": "npm --prefix frontend run dev"
+  }
+}

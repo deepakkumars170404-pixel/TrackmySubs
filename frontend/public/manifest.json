@@ -1,0 +1,23 @@
+{
+  "name": "TrackmySubs - Smart Subscription & Renewal Tracker",
+  "short_name": "TrackmySubs",
+  "description": "Never miss a renewal payment. Smart 30-day billing tracking with free mobile sound alerts for households and organizations.",
+  "start_url": "/overview",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4f46e5",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/file.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/file.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
+
