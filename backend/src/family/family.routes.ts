@@ -174,7 +174,10 @@ router.get(
       const name = (req.query.name as string) || (email ? email.split('@')[0] : 'Family Member');
 
       const result = await FamilyService.acceptInvitation(client, memberId, email, 'Gmail', name);
-      const frontendUrl = process.env.PUBLIC_URL || process.env.FRONTEND_URL || 'http://localhost:3000';
+      const frontendUrl =
+        (process.env.FRONTEND_URL && !process.env.FRONTEND_URL.includes('cloudflare') && !process.env.FRONTEND_URL.includes('trycloudflare'))
+          ? process.env.FRONTEND_URL.replace(/\/$/, '')
+          : 'https://trackmysubs-pro.vercel.app';
 
       const subsCount = result.scannedSubscriptions?.length || 0;
       const htmlResponse = `

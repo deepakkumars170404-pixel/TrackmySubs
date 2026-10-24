@@ -30,8 +30,10 @@ services:
       - key: SMTP_PASS
         value: zckftmtgkvfvrozs
       - key: EMAIL_FROM
-        value: deepakkumars170404@gmail.com
+        value: no-reply@mail.wegrowcampus.in
       - key: EMAIL_FROM_NAME
         value: TrackmySubs
+      - key: ADMIN_EMAIL
+        value: deepakkumars170404@gmail.com
       - key: FRONTEND_URL
         value: https://trackmysubs-pro.vercel.app
