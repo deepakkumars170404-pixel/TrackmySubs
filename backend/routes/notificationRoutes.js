@@ -1,6 +1,12 @@
 import express from "express";
-import nodemailer from "nodemailer";
-import { registerToken, getRegisteredTokens, sendRenewalNotification } from "../services/fcmService.js";
+import {
+  registerToken,
+  getRegisteredTokens,
+  sendRenewalNotification,
+  executeDailyRenewalCheck,
+  dispatchTargetedRenewalEmails
+} from "../services/fcmService.js";
+import { sendEmail } from "../services/emailService.js";
 import {
   VAPID_PUBLIC_KEY,
   savePushSubscription,
@@ -197,10 +203,24 @@ router.post("/notify-1day-all", async (req, res) => {
   });
 });
 
-// POST /api/notifications/test-email - Delivers live renewal summary digest to registered email
+// POST /api/notifications/run-renewal-check - Triggers daily 1-day prior check (Push + Choice 2 Targeted Emails)
+router.post("/run-renewal-check", async (req, res) => {
+  try {
+    await executeDailyRenewalCheck();
+    res.json({
+      success: true,
+      message: "Daily renewal check executed successfully. Push and targeted emails dispatched."
+    });
+  } catch (err) {
+    console.error("Run renewal check error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/notifications/test-email - Delivers live renewal summary digest or runs Choice 2 targeted dispatch
 router.post("/test-email", async (req, res) => {
-  const { email, subscriptions: clientSubs } = req.body || {};
-  const recipient = email || process.env.SMTP_USER || "deepakkumars170404@gmail.com";
+  const { email, subscriptions: clientSubs, mode } = req.body || {};
+  const recipient = email || process.env.SMTP_USER || process.env.ADMIN_EMAIL || "deepakkumars170404@gmail.com";
 
   let subs = clientSubs;
   if (!subs || !Array.isArray(subs) || subs.length === 0) {
@@ -212,78 +232,78 @@ router.post("/test-email", async (req, res) => {
   }
 
   const subsList = subs && subs.length > 0 ? subs : [
-    { name: "Netflix Premium", cost: 649, billing_cycle: "monthly", next_billing_date: "Tomorrow" },
-    { name: "YouTube Premium", cost: 299, billing_cycle: "monthly", next_billing_date: "Tomorrow" },
-    { name: "Spotify Family", cost: 179, billing_cycle: "monthly", next_billing_date: "In 2 days" }
+    { name: "Netflix Premium", cost: 649, billing_cycle: "monthly", next_billing_date: "Tomorrow", who_uses_it: "Rajkumar" },
+    { name: "Spotify Family", cost: 179, billing_cycle: "monthly", next_billing_date: "Tomorrow", who_uses_it: "Everyone" },
+    { name: "YouTube Premium", cost: 299, billing_cycle: "monthly", next_billing_date: "Tomorrow", who_uses_it: "Deepak Kumar" }
   ];
 
-  const totalCost = subsList.reduce((sum, s) => sum + (Number(s.cost) || 0), 0);
-
-  if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+  // If testing Choice 2 targeted mode
+  if (mode === "targeted" || req.query.targeted === "true") {
     try {
-      const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: Number(process.env.SMTP_PORT || 465),
-        secure: true,
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS
-        }
-      });
-
-      const html = `
-        <div style="font-family:Arial,sans-serif;color:#1e293b;max-width:560px;margin:auto;padding:24px;border:1px solid #e2e8f0;border-radius:16px;background:#ffffff">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
-            <div style="width:36px;height:36px;background:linear-gradient(135deg,#4f46e5,#9333ea,#ec4899);border-radius:10px;color:#ffffff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px;text-align:center;line-height:36px">T</div>
-            <h2 style="color:#0f172a;margin:0;font-size:20px;font-weight:800">TrackmySubs · 1-Day Prior Renewal Summary</h2>
-          </div>
-          <p style="font-size:14px;color:#475569;margin-bottom:20px">
-            Here is your 1-day advance notice for subscriptions scheduled to renew tomorrow. Total upcoming charge: <strong style="color:#0f172a;font-size:16px">₹${totalCost}</strong>.
-          </p>
-          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin:20px 0">
-            ${subsList.map(s => `
-              <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #e2e8f0">
-                <div>
-                  <strong style="color:#0f172a;font-size:14px">${s.name}</strong>
-                  <div style="color:#64748b;font-size:12px">${s.billing_cycle || 'Monthly'} · Due: ${s.next_billing_date || 'Tomorrow'}</div>
-                </div>
-                <div style="font-weight:bold;color:#4f46e5;font-size:15px;font-family:monospace">
-                  ₹${s.cost}
-                </div>
-              </div>
-            `).join('')}
-          </div>
-          <p style="font-size:13px;color:#64748b">
-            AutoPay reminder: Please ensure your linked bank accounts or cards have sufficient funds before tomorrow's charge.
-          </p>
-          <p style="margin-top:20px"><a href="https://trackmy-subs.vercel.app/calendar" style="display:inline-block;background:#4f46e5;color:#ffffff;padding:12px 24px;border-radius:10px;text-decoration:none;font-weight:bold;font-size:13px">View in TrackmySubs Calendar &rarr;</a></p>
-        </div>
-      `;
-
-      await transporter.sendMail({
-        from: `"TrackmySubs Notifications" <${process.env.EMAIL_FROM || "notifications@trackmysubs.com"}>`,
-        replyTo: process.env.ADMIN_EMAIL || "deepakkumars170404@gmail.com",
-        to: recipient,
-        subject: `🔔 1-Day Prior Renewal Alert: ${subsList.length} subscriptions renewing tomorrow (₹${totalCost})`,
-        html
-      });
-
+      const result = await dispatchTargetedRenewalEmails(subsList);
       return res.json({
         success: true,
-        message: `Renewal summary digest successfully delivered to ${recipient} via Gmail SMTP!`,
-        totalCost,
-        count: subsList.length
+        mode: "targeted",
+        rule: "Choice 2: Assigned member gets alert + Owner gets copy. Shared plans alert all members.",
+        deliveredCount: result.deliveredCount,
+        dispatches: result.summary
       });
-    } catch (mailErr) {
-      console.warn("Test email digest error:", mailErr.message);
-      return res.status(500).json({ success: false, message: mailErr.message });
+    } catch (err) {
+      return res.status(500).json({ success: false, message: err.message });
     }
   }
 
-  return res.json({
-    success: true,
-    message: `Renewal digest simulated for ${recipient}. Configure SMTP in backend .env to send real mail.`
-  });
+  const totalCost = subsList.reduce((sum, s) => sum + (Number(s.cost) || 0), 0);
+
+  const html = `
+    <div style="font-family:Arial,sans-serif;color:#1e293b;max-width:560px;margin:auto;padding:24px;border:1px solid #e2e8f0;border-radius:16px;background:#ffffff">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+        <div style="width:36px;height:36px;background:linear-gradient(135deg,#4f46e5,#9333ea,#ec4899);border-radius:10px;color:#ffffff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px;text-align:center;line-height:36px">T</div>
+        <h2 style="color:#0f172a;margin:0;font-size:20px;font-weight:800">TrackmySubs · 1-Day Prior Renewal Summary</h2>
+      </div>
+      <p style="font-size:14px;color:#475569;margin-bottom:20px">
+        Here is your 1-day advance notice for subscriptions scheduled to renew tomorrow. Total upcoming charge: <strong style="color:#0f172a;font-size:16px">₹${totalCost}</strong>.
+      </p>
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin:20px 0">
+        ${subsList.map(s => `
+          <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #e2e8f0">
+            <div>
+              <strong style="color:#0f172a;font-size:14px">${s.name}</strong>
+              <div style="color:#64748b;font-size:12px">${s.billing_cycle || 'Monthly'} · Due: ${s.next_billing_date || 'Tomorrow'} · User: <strong>${s.who_uses_it || 'Everyone'}</strong></div>
+            </div>
+            <div style="font-weight:bold;color:#4f46e5;font-size:15px;font-family:monospace">
+              ₹${s.cost}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <p style="font-size:13px;color:#64748b">
+        AutoPay reminder: Please ensure your linked bank accounts or cards have sufficient funds before tomorrow's charge.
+      </p>
+      <p style="margin-top:20px"><a href="https://trackmysubs-pro.vercel.app/calendar" style="display:inline-block;background:#4f46e5;color:#ffffff;padding:12px 24px;border-radius:10px;text-decoration:none;font-weight:bold;font-size:13px">View in TrackmySubs Calendar &rarr;</a></p>
+    </div>
+  `;
+
+  try {
+    const result = await sendEmail({
+      to: recipient,
+      subject: `🔔 1-Day Prior Renewal Alert: ${subsList.length} subscriptions renewing tomorrow (₹${totalCost})`,
+      html,
+      text: `TrackmySubs: ${subsList.length} subscriptions renewing tomorrow (₹${totalCost}). View: https://trackmysubs-pro.vercel.app/calendar`
+    });
+
+    return res.json({
+      success: true,
+      message: `Renewal summary digest successfully delivered to ${recipient}!`,
+      method: result.method,
+      id: result.id,
+      totalCost,
+      count: subsList.length
+    });
+  } catch (mailErr) {
+    console.warn("Test email digest error:", mailErr.message);
+    return res.status(500).json({ success: false, message: mailErr.message });
+  }
 });
 
 export default router;

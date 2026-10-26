@@ -1,6 +1,13 @@
 import admin from "firebase-admin";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 import { dispatchWebPush } from "./webPushService.js";
 import { createAdminClient } from "../config/supabase.js";
+import { sendEmail } from "./emailService.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**
  * Firebase Cloud Messaging (FCM) Backend Service
@@ -167,9 +174,143 @@ export async function sendRenewalNotification({
 }
 
 /**
+ * Choice 2 Targeted Email Reminders:
+ * - If Shared (Used by Everyone/Family) -> All connected members receive reminder
+ * - If Specific Member (e.g. Rajkumar) -> That specific member gets it + Owner gets a copy
+ */
+export async function dispatchTargetedRenewalEmails(renewingSubs) {
+  if (!renewingSubs || renewingSubs.length === 0) return { deliveredCount: 0, summary: [] };
+
+  let members = [];
+  try {
+    const dataDir = path.resolve(__dirname, "../data");
+    const membersFile = path.join(dataDir, "members.json");
+    if (fs.existsSync(membersFile)) {
+      members = JSON.parse(fs.readFileSync(membersFile, "utf-8"));
+    }
+  } catch (e) {
+    console.warn("[Renewal Alert] Note loading members:", e.message);
+  }
+
+  const ownerEmail = (process.env.ADMIN_EMAIL || process.env.SMTP_USER || "deepakkumars170404@gmail.com").toLowerCase().trim();
+  const ownerMember = members.find(m => m.role === "Owner") || { name: "Deepak Kumar", email: ownerEmail };
+
+  let totalDelivered = 0;
+  const dispatchSummary = [];
+
+  for (const sub of renewingSubs) {
+    const who = (sub.who_uses_it || "Everyone").trim();
+    const isShared = who.toLowerCase() === "everyone" || who.toLowerCase().includes("family");
+
+    // Choice 2 targeting:
+    const targetEmails = new Set();
+
+    if (isShared) {
+      members.forEach(m => {
+        if (m.email && m.email.includes("@")) targetEmails.add(m.email.toLowerCase().trim());
+      });
+      targetEmails.add(ownerEmail);
+    } else {
+      const matched = members.find(m =>
+        m.name?.toLowerCase().includes(who.toLowerCase()) ||
+        who.toLowerCase().includes(m.name?.toLowerCase()) ||
+        m.email?.toLowerCase() === who.toLowerCase()
+      );
+
+      if (matched && matched.email && matched.email.includes("@")) {
+        targetEmails.add(matched.email.toLowerCase().trim());
+      }
+      // Owner/Admin always receives a copy so bills are never missed!
+      targetEmails.add(ownerEmail);
+    }
+
+    const recipientList = Array.from(targetEmails);
+    const subCost = Number(sub.cost || 0);
+    const formattedCost = `₹${subCost.toLocaleString("en-IN")}`;
+    const nextDate = sub.next_billing_date || "Tomorrow";
+
+    for (const recipient of recipientList) {
+      const isOwner = recipient === ownerEmail;
+
+      let headline = `Renewal Reminder: ${sub.name}`;
+      let note = "";
+
+      if (isShared) {
+        headline = `Shared Plan Renewal: ${sub.name}`;
+        note = `This is a shared family subscription used by Everyone.`;
+      } else if (isOwner && who.toLowerCase() !== ownerMember.name.toLowerCase()) {
+        headline = `Member Renewal Alert: ${sub.name} (${who})`;
+        note = `This subscription is used by <strong>${who}</strong>. As household owner, you are receiving this copy so payment and card limits are verified.`;
+      } else {
+        headline = `Your Subscription Renews: ${sub.name}`;
+        note = `This subscription is assigned to you (<strong>${who}</strong>).`;
+      }
+
+      const emailHtml = `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; background: #ffffff; color: #1e293b; border-radius: 16px; border: 1px solid #e2e8f0;">
+          <div style="text-align: center; margin-bottom: 24px;">
+            <div style="display: inline-block; padding: 6px 14px; background: #eef2ff; color: #4f46e5; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">
+              TrackmySubs · 1-Day Prior Alert
+            </div>
+            <h1 style="color: #0f172a; margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.5px;">${headline}</h1>
+          </div>
+
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 20px; margin-bottom: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;">
+              <div>
+                <h2 style="color: #0f172a; font-size: 17px; margin: 0 0 4px 0; font-weight: 700;">${sub.name}</h2>
+                <span style="color: #64748b; font-size: 12px;">${sub.billing_cycle ? sub.billing_cycle.toUpperCase() : 'MONTHLY'} · Assigned to: <strong>${who}</strong></span>
+              </div>
+              <div style="font-size: 22px; font-weight: 800; color: #4f46e5; font-family: monospace;">
+                ${formattedCost}
+              </div>
+            </div>
+
+            <div style="font-size: 13px; color: #475569; line-height: 1.6;">
+              <p style="margin: 0 0 8px 0;">📅 <strong>Next Billing Date:</strong> ${nextDate}</p>
+              <p style="margin: 0 0 8px 0;">💳 <strong>Auto-Renew:</strong> Active</p>
+              <p style="margin: 0; font-size: 12px; color: #64748b;">${note}</p>
+            </div>
+          </div>
+
+          <div style="background: #fffbeb; border: 1px solid #fef3c7; border-radius: 10px; padding: 12px 16px; margin-bottom: 24px; font-size: 12px; color: #92400e; line-height: 1.5;">
+            ℹ️ <strong>AutoPay Notice:</strong> Please ensure your linked bank account or card has sufficient balance prior to tomorrow's charge to avoid service disruption.
+          </div>
+
+          <div style="text-align: center; margin-bottom: 16px;">
+            <a href="https://trackmysubs-pro.vercel.app/calendar" style="display: inline-block; background: #4f46e5; color: #ffffff; text-decoration: none; font-weight: 700; font-size: 14px; padding: 12px 28px; border-radius: 10px; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);">
+              View in Calendar Hub →
+            </a>
+          </div>
+
+          <p style="color: #94a3b8; font-size: 11px; text-align: center; margin: 24px 0 0 0;">
+            Sent by TrackmySubs · Dedicated Household & Business Subscription Hub
+          </p>
+        </div>
+      `;
+
+      try {
+        await sendEmail({
+          to: recipient,
+          subject: `⏰ Renewal Alert: ${sub.name} renews tomorrow (${formattedCost}) · TrackmySubs`,
+          html: emailHtml,
+          text: `TrackmySubs: ${sub.name} (${formattedCost}) is renewing on ${nextDate}. Used by: ${who}. View calendar: https://trackmysubs-pro.vercel.app/calendar`
+        });
+        totalDelivered++;
+        dispatchSummary.push({ sub: sub.name, who, recipient });
+      } catch (err) {
+        console.warn(`[Renewal Alert] Failed delivery to ${recipient}:`, err.message);
+      }
+    }
+  }
+
+  return { deliveredCount: totalDelivered, summary: dispatchSummary };
+}
+
+/**
  * Daily renewal check runner (Automated 1-day prior alert engine)
  */
-async function executeDailyRenewalCheck() {
+export async function executeDailyRenewalCheck() {
   console.log("⏰ Running daily 1-day prior renewal check across active accounts...");
   try {
     const admin = createAdminClient();
@@ -205,6 +346,10 @@ async function executeDailyRenewalCheck() {
         data: { url: "/calendar", count: String(renewingSubs.length), totalCost: String(total) }
       });
       console.log(`🚀 Automated 1-day renewal push dispatched for ${renewingSubs.length} subscription(s)!`);
+
+      // Dispatch Choice 2 Targeted Email Reminders
+      const emailResult = await dispatchTargetedRenewalEmails(renewingSubs);
+      console.log(`📧 Targeted renewal emails delivered to ${emailResult.deliveredCount} recipient(s)!`);
     }
   } catch (err) {
     console.warn("Daily renewal check note:", err.message);

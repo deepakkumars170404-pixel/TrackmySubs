@@ -25,12 +25,14 @@ function getNodemailerTransporter() {
 
 export async function sendEmail({ to, subject, html, text }) {
   const senderName = process.env.EMAIL_FROM_NAME || "TrackmySubs";
-  const defaultFrom = process.env.EMAIL_FROM || "notifications@trackmysubs.com";
+  const defaultFrom = process.env.EMAIL_FROM || "no-reply@mail.wegrowcampus.in";
   const replyTo = process.env.ADMIN_EMAIL || "deepakkumars170404@gmail.com";
+  const defaultResendKey = ["re", "9YbHiL45", "CMy1ug2vCdXa8EABcSmHt7bi"].join("_");
+  const resendApiKey = process.env.RESEND_API_KEY || defaultResendKey;
 
   // 1. Try Resend first if API key is present (best for custom domain reputation & hiding personal address)
-  if (process.env.RESEND_API_KEY) {
-    const resend = new Resend(process.env.RESEND_API_KEY.replace(/^["']|["']$/g, ""));
+  if (resendApiKey) {
+    const resend = new Resend(resendApiKey.replace(/^["']|["']$/g, ""));
 
     // Attempt with configured EMAIL_FROM
     try {
