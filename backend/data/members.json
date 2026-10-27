@@ -5,11 +5,11 @@
     "role": "Owner",
     "avatarInitials": "DK",
     "avatarColor": "bg-[#E7F2EA] text-[#184A39]",
-    "planCount": 0,
-    "monthlyShare": 0,
+    "planCount": 6,
+    "monthlyShare": 3538,
     "inboxStatus": "Gmail connected",
     "email": "deepakkumars170404@gmail.com",
-    "lastChecked": "Mailbox verified - 0 active subscriptions found",
+    "lastChecked": "Mailbox synced · 6 active subscriptions tracking",
     "status": "active"
   },
   {
@@ -18,11 +18,11 @@
     "role": "Member",
     "avatarInitials": "RA",
     "avatarColor": "bg-[#FEE2E2] text-[#991B1B]",
-    "planCount": 0,
-    "monthlyShare": 0,
+    "planCount": 6,
+    "monthlyShare": 2939,
     "inboxStatus": "Gmail connected",
     "email": "kumarrk23dev@gmail.com",
-    "lastChecked": "Mailbox verified - 0 active subscriptions found",
+    "lastChecked": "Mailbox synced · 6 active subscriptions tracking",
     "status": "active"
   }
 ]
