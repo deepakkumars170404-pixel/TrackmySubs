@@ -10,6 +10,20 @@ const nextConfig: NextConfig = {
     "localhost",
     "127.0.0.1",
   ],
+  async redirects() {
+    return [
+      {
+        source: "/household",
+        destination: "/family",
+        permanent: true,
+      },
+      {
+        source: "/members",
+        destination: "/family",
+        permanent: true,
+      },
+    ];
+  },
   async rewrites() {
     const backendHost =
       process.env.BACKEND_INTERNAL_URL ||
